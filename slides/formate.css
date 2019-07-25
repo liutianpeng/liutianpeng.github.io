@@ -1,0 +1,49 @@
+/*醒目的文本*/
+striking {
+  color: red;
+  font: bold;
+}
+
+/*表示一个概念的名词*/
+conception {
+  color: red;
+  font: bold;
+}
+
+/*封面.标题*/
+[fm=cover-title] {
+  text-align: center;
+  font-size: 80px;
+}
+
+/*封面.作者*/
+[fm=cover-author] {
+  text-align: right;
+  font-size: 30px;
+  position: relative;
+  top: 100px;
+}
+
+/*内容页*/
+[fm=page] {
+  font-size: 25px;
+}
+
+/*内容页.标题*/
+[fm=page-title] {
+  text-align: left;
+  font-size: 50px;
+  font: bold;
+}
+
+/*内容页.说明*/
+[fm=page-comment] {
+  text-align: left;
+  font-style: italic;
+  font-size: 30px;
+}
+
+/*内容页.内容*/
+[fm=page-content] {
+  text-align: left;
+}

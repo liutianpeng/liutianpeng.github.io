@@ -1,0 +1,369 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Boost</title>
+
+	<link rel="stylesheet" href="reveal.js/css/reset.css">
+	<link rel="stylesheet" href="reveal.js/css/reveal.css">
+	<link rel="stylesheet" href="reveal.js/css/theme/black.css">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="reveal.js/lib/css/monokai.css">
+
+	<link rel="stylesheet" href="formate.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match(/print-pdf/gi) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+		document.getElementsByTagName('head')[0].appendChild(link);
+	</script>
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+			<section fm=page>
+				<h1>2019年职级晋升材料</h1>
+				<h6>战狼工作室 App开发组 刘天鹏</h6>
+			</section>
+
+			<section fm=page>
+				<h2>工作经历</h2>
+			</section>
+
+			<section fm=page>
+				<p fm=page-title>2008–征途越南版</p>
+				<p fm=page-comment>负责程序团队，和越南人沟通（会说汉语）</p>
+				<p fm=page-content>
+					<ul>
+						<li>翻译
+							<ul>
+								<li>采用宏的方式，静态替换语言（工具是前端同学制作）</li>
+								<li>对Log(“”)中的语言特殊处理，实现多语言日志（由于是宏替换，切换语言需要重新编译）</li>
+								<li>由于语言语序不同,翻译后的文字<striking>%s%d</striking>这种占位符顺序会变化。（通过工具比对原始和翻译字符串，检查错误。目的是怕宕机，只是检查<striking>%s%d
+									</striking>的顺序变化）</li>
+							</ul>
+						</li>
+						<li>中文GBK双字节编码到越南文UTF-8编码的转变
+							<ul>
+								<li>程序中聊天部分（表情，道具展示链接）需要对编码进行处理</li>
+								<li>程序中广泛采用定长数组（32字节）处理实体的名字。而越南文是UTF-8边长编码，以及字符拼接单词的语言。一个字符可能1~3个字符，单词长度不可控，多数超过32字节。</li>
+							</ul>
+						</li>
+					</ul>
+				</p>
+			</section>
+
+			<section fm=page>
+				<section>
+					<p fm=page-title>2009–征途2（端游）</p>
+					<p fm=page-comment>负责服务器团队</p>
+					<p fm=page-content>
+						<ul>
+							<li>SessionServer拆分
+								<ul>
+									<li>征途服务器是单线程的服务器，Session是一个压力重点，且无法拆分。</li>
+									<li>设计了FunctionServer（功能服务器），用于分担Session的压力，并且设计成Function宕机，并不影响其他服务器，只是影响Function上跑的功能。</li>
+									<li>原有Session功能不变，新功能在Function上</li>
+								</ul>
+							</li>
+							<li>SceneServer拆分
+								<ul>
+									<li>为了提高Scene的负载，将NPC相关逻辑独立出来，做成Npc服务器</li>
+									<li>Scene与Npc的关系是N:1</li>
+								</ul>
+							</li>
+							<li>加深对游戏服务器的理解
+								<ul>
+									<li>在征途任务系统的基础上设计的Npc脚本</li>
+								</ul>
+							</li>
+						</ul>
+					</p>
+				</section>
+
+				<section fm=page>
+					<p fm=page-title>Npc脚本</p>
+					<img data-src="https://liutianpeng.github.io/image/征途2-npc脚本-1.png">
+				</section>
+			</section>
+
+			<section fm=page>
+				<section>
+					<p fm=page-title>2012 –江湖（端游）</p>
+					<p fm=page-comment>负责程序团队 (名义上的主程，实际负责服务端)</p>
+					<p fm=page-content>
+						<ul>
+							<li>FunctionServer模板化
+								<ul>
+									<li>由于Function功能越来越多,逐步发展成Session第二.遂继续拆分Function相关功能</li>
+									<li>为了方便写新服务器，制作能够生成类Function服务器的框架代码</li>
+								</ul>
+							</li>
+							<li>数据库存储异步化
+								<ul>
+									<li>
+										征途的MySql是同步访问，严重影响单线程的运行体验。通过观察MySQL的封装，发现它其实是分生成SQL语句和执行SQL语句两个部分。于是修改成Session生成Sql，发送到DBServer执行的模式（只处理部分Update语句）
+									</li>
+								</ul>
+							</li>
+							<li>场景宕机快速恢复
+								<ul>
+									<li>
+										由于场景启动比较慢，和监控手段限制，从宕机到恢复需要十几分钟。于是我把场景的启动分成两个阶段，1：初始化，加载配置表格等，2：命名，通过Super赋予身份加载地图数据，注册地图。一组服务器需要N的场景，则启动N+1个进程，其中1个作为备份，只启动到第1阶段，如果Super失去某个Scene的连接，则把失去连接的Scene名字给备份场景，这样备份场景就能快速接替原场景的功能，基本宕机到恢复在若干秒
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</p>
+				</section>
+
+				<section>
+					<p fm=page-title>2012 –江湖（端游）</p>
+					<p fm=page-content>
+						<ul>
+							<li>网关保持连接（由后端其他同学具体实施）
+								<ul>
+									<li>
+										征途服务器如果场景宕机，会导致玩家下线，通过备份场景实现场景的快速恢复。之后我们把网关的GateUser状态拆分，设计一种悬空状态，就是客户端连接，但是不登入场景。如果场景宕机，并不踢人而是设置悬空状态，等待场景恢复后自动登入场景。基本实现Scene宕机（维护）玩家无感。
+									</li>
+								</ul>
+							</li>
+							<li>场景拆分-新手村
+								<ul>
+									<li>征途的场景是单线程，虽然可以拆分，但是同一张地图不能拆分成两个场景</li>
+									<li>刚刚开服新手村会聚集大量玩家，9屏压力十分大。我们设计仿造分线游戏， X国-清源村1 X国-清源村2 X国-清源村3。。。这样的<conception>平行地图</conception>
+										，并实现这些地图之间的相同位置跳转（客户端不重新加载地图，并且对消失和增加的实体做透明渐变处理），新玩家被随机丢到这些地图中，分散9屏压力。对于组队的玩家，按照队长的位置达到同一个平行地图。</li>
+								</ul>
+							</li>
+							<li>场景拆分-国战
+								<ul>
+									<li>在国战过程中，大量玩家集中在王城（江湖中没有龙牙关，边境也不参与国战争夺）</li>
+									<li>我们将王城也设计成<conception>平行地图</conception>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</p>
+				</section>
+
+				<section>
+					<p fm=page-title>平行地图</p>
+					<p fm=page-content>
+						<ul>
+							<li>独立型</li>
+							<li>平行世界型</li>
+							<li>镂空型</li>
+						</ul>
+					</p>
+				</section>
+
+				<section data-background-image="https://liutianpeng.github.io/image/江湖-平行地图-1.png">
+					<p fm=page-title>平行地图</p>
+				</section>
+			</section>
+
+			<section fm=page>
+				<p fm=page-title>2016 –征途3（端游）中土大陆（手游）</p>
+				<p fm=page-comment>负责程序团队（实际负责服务端）</p>
+				<p fm=page-content>
+					<ul>
+						<li>征途3
+							<ul>
+								<li>完整实现了一套基于Lua 的任务框架(参考巨人的设计，兼容征途已有的QuestAction，QuestCondition代码</li>
+							</ul>
+						<li>中土大陆
+							<ul>
+								<li>中土大陆是第一次手游项目的开发，但是基本还是走的端游模式</li>
+								<li>向程辉（前端负责人）学习一些面向对象的程序设计方法，已经功能划分方法</li>
+							</ul>
+						</li>
+					</ul>
+				</p>
+			</section>
+
+			<section fm=page>
+				<section>
+					<p fm=page-title>2017 –怦怦英雄（手游）</p>
+					<p fm=page-comment>负责程序团队（实际负责服务端）</p>
+					<p fm=page-content>
+						<ul>
+							<li>怦怦英雄是在孵化部制作的一款休闲竞技手游
+								<ul>
+									<li>基于物理的弹道,爆炸,碰撞</li>
+									<li>完全可破坏的地形</li>
+								</ul>
+							</li>
+							<li>怦怦英雄是第一次尝试用Golang开发服务器</li>
+							<li>以端游的思路设计手游遇到的问题
+								<ul>
+									<li>断线重连
+										<ul>
+											<li>端游以在线的人为主，拒绝同一账号的新登陆请求</li>
+											<li>手游需要以新登陆为主，替换原始登陆角色</li>
+										</ul>
+									<li>弱网络条件下，不能流畅游戏
+										<ul>
+											<li>使UDP替代TCP协议</li>
+											<li>使用帧同步</li>
+										</ul>
+									</li>
+								</ul>
+							</li>
+						</ul>
+					</p>
+				</section>
+
+				<section>
+					<p fm=page-title>怦怦英雄-宣传视频</p>
+					<video controls="controls" src="https://liutianpeng.github.io/video/ppyx.mp4"></video>
+				</section>
+
+				<section data-background-size="contain" data-background-repeat="no-repeat"
+					data-background-image="https://liutianpeng.github.io/image/怦怦英雄-服务器结构.png">
+				</section>
+			</section>
+
+			<section fm=page>
+				<section>
+					<p fm=page-title>2019 –征途大神社区（App）</p>
+					<p fm=page-comment>负责后端开发</p>
+					<p fm=page-content>
+						<ul>
+							<li>前后端分离的设计，基本基于RESTful风格的API。同一套后台服务支持前端App（Flutter），游戏内嵌网页（传统js），管理后台（Vue.js）</li>
+							<li>使用MongoDB作为主要数据存储,结合Redis实现点赞，关注的功能</li>
+							<li>基于消息队列对功能进行解耦</li>
+							<li>第一次尝试前端开发（基于Vue.js的征途大神社区管理后台）</li>
+						</ul>
+					</p>
+				</section>
+
+				<section data-background-size="contain" data-background-repeat="no-repeat"
+					data-background-image="https://liutianpeng.github.io/image/社区-服务器结构.png">
+				</section>
+
+				<section data-background-size="contain" data-background-repeat="no-repeat"
+					data-background-image="https://liutianpeng.github.io/image/社区-API.png">
+				</section>
+			</section>
+
+			<section fm=page>
+				<section>
+					<p fm=page-title>2019 –征途挂机(筹)（H5手游）</p>
+					<p fm=page-comment>负责后端开发</p>
+					<p fm=page-content>
+						<ul>
+							<li>运行在征途大神社区APP中的挂机游戏</li>
+							<li>独立的社会关系服务</li>
+							<li>尝试新的基于Golang的MMO服务器结构</li>
+						</ul>
+					</p>
+				</section>
+
+				<section>
+					<p fm=page-title>社会关系-分层结构</p>
+					<img data-src="https://liutianpeng.github.io/image/社会关系-分层结构.png">
+				</section>
+
+				<section>
+					<p fm=page-title>社会关系-数据库结构</p>
+					<img data-src="https://liutianpeng.github.io/image/社会关系-数据库结构.png">
+				</section>
+
+				<section>
+					<p fm=page-title>基础框架</p>
+					<img data-src="https://liutianpeng.github.io/image/基础框架-mmo-1.png">
+				</section>
+			</section>
+
+			<section fm=page>
+				<h2>成果展示</h2>
+			</section>
+
+			<section fm=page>
+				<p fm=page-content>
+					<ul>
+						<li>上线的项目
+							<ul>
+								<li>征途免费版（越南语版本） -负责沟通，服务端</li>
+								<li>征途2 -负责服务端</li>
+								<li>征途2（越南语版本，繁体字版本） -负责服务端</li>
+								<li>江湖 -负责服务端</li>
+							</ul>
+						</li>
+						<li>未上线项目
+							<ul>
+								<li>征途3 -负责服务端，公司战略调整撤销</li>
+								<li>中土大陆 -负责服务端，制作人离职撤销</li>
+								<li>怦怦英雄 -负责服务端，测试数据不佳撤销</li>
+							</ul>
+						</li>
+					</ul>
+				</p>
+			</section>
+
+			<section fm=page>
+				<h2>近期工作/未来展望</h2>
+			</section>
+
+			<section fm=page>
+				<p fm=page-content>
+					<ul>
+						<li>完善知识体系
+							<ul>
+								<li>学习一些前端相关的知识，了解前端的套路，达到<striking>听得明白，想的清楚</striking>的程度</li>
+								<li>学习一些外面常用的技术，方法，不至于太脱节</li>
+								<li>学习更多后端架构，组织方式</li>
+							</ul>
+						</li>
+						<li>征途挂机(筹)服务端设计
+							<ul>
+								<li>借由这个项目，逐步研究如何<striking>拆分</striking>MMO服务器的设计</li>
+							</ul>
+						</li>
+					</ul>
+				</p>
+			</section>
+
+			<section fm=page>
+				<h2>总结</h2>
+			</section>
+
+			<!------------------------------------>
+			<section fm=page>
+				<p fm=page-title>标题</p>
+				<p fm=page-comment>说明</p>
+				<p fm=page-content>正文
+				</p>
+			</section>
+
+
+
+		</div>
+	</div>
+
+	<script src="reveal.js/js/reveal.js"></script>
+
+	<script>
+		// More info about config & dependencies:
+		// - https://github.com/hakimel/reveal.js#configuration
+		// - https://github.com/hakimel/reveal.js#dependencies
+		Reveal.initialize({
+			dependencies: [
+				{ src: 'reveal.js/plugin/markdown/marked.js' },
+				{ src: 'reveal.js/plugin/markdown/markdown.js' },
+				{ src: 'reveal.js/plugin/notes/notes.js', async: true },
+				{ src: 'reveal.js/plugin/highlight/highlight.js', async: true }
+			]
+		});
+	</script>
+</body>
+
+</html>
