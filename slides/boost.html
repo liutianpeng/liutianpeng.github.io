@@ -9,7 +9,7 @@
 
 	<link rel="stylesheet" href="reveal.js/css/reset.css">
 	<link rel="stylesheet" href="reveal.js/css/reveal.css">
-	<link rel="stylesheet" href="reveal.js/css/theme/black.css">
+	<link rel="stylesheet" href="reveal.js/css/theme/white.css">
 
 	<!-- Theme used for syntax highlighting of code -->
 	<link rel="stylesheet" href="reveal.js/lib/css/monokai.css">
@@ -91,7 +91,47 @@
 
 				<section fm=page>
 					<p fm=page-title>Npc脚本</p>
-					<img data-src="https://liutianpeng.github.io/image/征途2-npc脚本-1.png">
+					<p fm=page-content>
+						<ul>
+							<li>脚本以<conception>stage</conception>为一个执行单元，一个<conception>stage</conception>可以跳转到另一个<conception>stage</conception></li>
+							<li>一个<conception>stage</conception>包含两个部分：<conception>inputs</conception>，<conception>actions</conception></li>
+							<li><conception>inputs</conception>负责跳转，每轮<conception>stage</conception>运行都会检查，判断是否反正跳转</li>
+							<li><conception>actions</conception>是动作，按照顺序无线循环运行</li>
+							<li>每个<conception>action</conception>都有持续时间（结束条件），<conception>halt</conception>命令会终止<conception>actions</conception>的循环</li>
+						</ul>
+					</p>
+				</section>
+
+				<section fm=page>
+					<p fm=page-title>Npc脚本</p>
+					<div style="float: left;width: 50%"><pre><code class="hljs html">
+<stage stageid="52501" log="初始化[封印幻象]">
+	<inputs nextstage="52502">
+		<actiondone></actiondone>
+	</inputs>
+	<actions>
+		<pause lasttime="2" ></pause>
+		<changeNpc npcid="524" ></changeNpc>
+		<sendCode code="525" roleid="525" scene="1" ></sendCode>
+		<pause lasttime="30" ></pause>
+		<changeNpc npcid="525" ></changeNpc>
+		<halt ></halt>
+	</actions>
+</stage>
+					</code></pre></div>
+					<div style="float: left;width: 50%"><pre><code class="hljs html">
+<stage stageid="52502" log="初始化[封印幻象]">
+	<inputs nextstage="52502">
+		<actiondone ></actiondone>
+	</inputs>
+	<inputs nextstage="52501">
+		<hascode code="525" ></hascode>
+	</inputs>
+	<actions>
+		<setrole roleid="525" ></setrole>
+	</actions>
+</stage>
+					</code></pre></div>
 				</section>
 			</section>
 
@@ -153,19 +193,39 @@
 						</ul>
 					</p>
 				</section>
-
+		
 				<section>
 					<p fm=page-title>平行地图</p>
 					<p fm=page-content>
 						<ul>
-							<li>独立型</li>
-							<li>平行世界型</li>
-							<li>镂空型</li>
+							<li>分类
+								<ul>
+									<li>独立型</li>
+									<li>平行世界型</li>
+									<li>镂空型</li>
+								</ul>
+							</li>
+							<li>能做的
+								<ul>
+									<li>查看平行地图的玩家/Npc</li>
+									<li>攻击平行世界的玩家/Npc</li>
+									<li>访问平行世界的Npc</li>
+									<li>在平行世界间无缝的跳转</li>
+								</ul>
+							</li>
+							<li>不能做的
+								<ul>
+									<li>与平行地图的玩家交易</li>
+									<li>拾取平行地图中的道具</li>
+									<li>与平行地图的玩家完成一些面对面类型的任务</li>
+								</ul>
+							</li>
 						</ul>
 					</p>
 				</section>
 
-				<section data-background-image="https://liutianpeng.github.io/image/江湖-平行地图-1.png">
+				<section data-background-size="contain" data-background-repeat="no-repeat"
+					data-background-image="https://liutianpeng.github.io/image/江湖-平行地图-1.png">
 					<p fm=page-title>平行地图</p>
 				</section>
 			</section>

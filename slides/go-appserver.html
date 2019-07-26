@@ -1,0 +1,635 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Go/App服务器设计分享</title>
+
+	<link rel="stylesheet" href="reveal.js/css/reset.css">
+	<link rel="stylesheet" href="reveal.js/css/reveal.css">
+	<link rel="stylesheet" href="reveal.js/css/theme/night.css">
+
+	<!-- Theme used for syntax highlighting of code -->
+	<link rel="stylesheet" href="reveal.js/lib/css/monokai.css">
+
+	<!-- Printing and PDF exports -->
+	<script>
+		var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.type = 'text/css';
+		link.href = window.location.search.match(/print-pdf/gi) ? 'reveal.js/css/print/pdf.css' : 'reveal.js/css/print/paper.css';
+		document.getElementsByTagName('head')[0].appendChild(link);
+	</script>
+</head>
+
+<body>
+	<div class="reveal">
+		<div class="slides">
+
+			<section>
+				<section>
+					<h2>Go/社区服务器分享</h2> 
+				</section>
+				<section>
+					<h1>Speaker Notes</h1>
+					<div id="qrcode"></div>
+					<input type="button" id="toggle" value="Wake Lock is disabled" />
+				</section>
+			</section>
+			
+			<section data-markdown>
+				## Go
+				#### Go特性介绍，和一些理解
+				- Go的学习资源
+				- Go的特性
+
+				Note:
+					go很像“C”，是一个加强版的C
+			</section>
+
+			<section>
+			<section data-markdown>
+				## Go的学习资源
+				- [The Go Programming Language(Go语言圣经)](https://books.studygolang.com/gopl-zh/)
+				- [The Way To Go(中文版)](https://github.com/Unknwon/the-way-to-go_ZH_CN)
+				- [Go by Example(中文版)](https://books.studygolang.com/gobyexample/)
+				- [golang.org](https://golang.org/doc)
+				
+				Note:
+				关于Go有很多开源书籍，这里只是介绍一部分
+				Go的官网是被墙的
+			</section>
+				<section data-background-iframe="https://books.studygolang.com/gopl-zh">
+				</section>
+				<section data-background="#dddddd" data-background-iframe="https://books.studygolang.com/gobyexample/">
+				</section>
+				<section data-background-iframe="https://www.cntofu.com/book/14/readme.html">
+				</section>
+			</section>
+			
+			<section data-markdown>
+				### Go的内存模型
+				- 支持GC,开发者不关心内存分配位置
+				- 初始化
+					- 包级别init函数 main.main函数的开始发生在所有init函数结束之后
+					- Go中的所有对象都有初始值
+				- goroutine的创建与销毁
+					<pre>
+						<code>
+						func hello() {
+							a := "hello, world"
+							go func() { a = "hello" }()
+							go func() { a = "world" }()
+							print(a)
+						}
+						</code>
+					</pre>
+				Note:
+				最初的版本Go的GC速度比较慢，但是现在的版本已经很快了；
+				现在的GC仍然由STW，如果零碎比较多，还是会有几十ms的卡顿
+			</section>
+
+			<section data-markdown>
+			<script type="text/template">
+				### Go的错误处理
+				- error<!-- .element: class="fragment" data-fragment-index="1" -->
+					- Error() string
+				- panic<!-- .element: class="fragment" data-fragment-index="2" -->
+					- 发生panic的func认为程序不可运行了
+					- 可以通过recover继续恢复运行
+					- 没有revocer的panic可以导致程序退出
+				- fatal error<!-- .element: class="fragment" data-fragment-index="3" -->
+					- 进程级别的错误
+			</script>
+				Note:
+					Go内置了error借口类型描述错误。和C惯用int描述错误不同，Go的error需要定义一个String类型的错误描述；一般使用常量描述特定的错误；
+					error一般是应用层的错误，对于一些更加严重错误，用panic；类似c++的try，catch，但是panic是函数级的，不是代码块级的
+					fatal error一般有out of memory，concurrent map writes，all goroutines are asleep - deadlock!
+			</section>
+
+			<section>
+			<section data-markdown>
+			<script type="text/template">
+				### go
+				- 使用go关键字启动(轻量级)线程<!-- .element: class="fragment" data-fragment-index="1" -->
+					- GPM线程模型
+				- goroutine代价很低<!-- .element: class="fragment" data-fragment-index="3" -->
+					- 一个goroutine基础内存消耗8k(十万个不到900M)
+					- 调度消耗很小(百万个运行没有压力)
+					- 创建goroutine时间消耗大概几十纳秒
+				- 创建gorountine的语法也很简单<!-- .element: class="fragment" data-fragment-index="5" -->
+				<pre>
+					<code>
+					go func() { a = "hello" }()
+					</code>
+				</pre>
+			</script>
+				Note:
+				M 内核级线程,goroutine就是跑在M之上
+
+				G gorountine,Go的运行单位
+
+				P Processor,处理器，可以通过runtime.GOMAXPROCS(N)设置个数
+			</section>
+			<section><img data-src="https://pic3.zhimg.com/80/67f09d490f69eec14c1824d939938e14_hd.jpg"/></section>
+			</section>
+
+			<section data-markdown>
+				<script type="text/template">
+				### 但是
+				- goroutine再多也不可能突破CPU的算力限制,100个goroutine并不意味着100倍的速度<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 大量的goroutine如果对相同的数据操作，也会有大量的消耗<!-- .element: class="fragment" data-fragment-index="2" -->
+					- 比如1堆goroutine同时监听一个channel
+				- goroutine对于临界资源的访问需要加锁<!-- .element: class="fragment" data-fragment-index="3" -->
+					- 加锁就要小心死锁
+				- C++内存会泄露，Go的goroutine也有同样的隐患<!-- .element: class="fragment" data-fragment-index="4" -->
+				</script>
+				Note:
+					goroutine只是CPU运算能力的一种分配方式
+			</section>
+
+			<section data-markdown>
+				### channel
+				- CSP:不要通过共享内存来通信，而应通过通信来共享内存
+				- 无缓冲的channel与带缓冲的channel
+				- 读取一个关闭的chan会立刻返回，写入一个关闭的chan会panic
+				- 没有人引用的chan即使没有显示关闭，会被回收
+				<pre>
+					<code>
+					ch := make(chan int, 1)
+					ch <- 100
+					b,ok := <- ch
+					close(ch)
+					</code>
+				</pre>
+				Note:
+					go一般认为由chan的写入方调用关闭函数
+			</section>
+
+			<section>
+				<h3> function</h3>
+				函数是go语言的一等公民
+				<section data-markdown>
+					- "一等公民":是说着函数可以像其他普通类型一样赋值、作为函数的参数、作为函数的返回值等
+					- 匿名函数
+					<pre>
+						<code>
+						func hello(){
+							go func() { fmt.Println("??") }()
+						}
+						//hello.func1
+						</code>
+					</pre>
+				</section>
+
+				<section>
+					<br/>
+					<br/>
+					<br/>
+					· 闭包<br>
+					记住其上下文环境中所有定义过的变量的函数<pre style="padding: 0px; margin-top: 0px; margin-bottom: 0px;">
+						<code style="padding: 0px; margin-top: 0px;" class="go">func hello(a int) {
+	a = a * 100
+	go func() {
+		fmt.Println(a)
+	}()
+}
+hello(1)</code>
+					</pre>
+				</section>
+
+				<section data-markdown>
+					- 延时函数
+					<pre>
+						<code>
+						func hello() int{
+							n:=10
+							defer func() { n=100 }()
+							return n
+						}
+						//hello.func1会在hello结束时运行(return以后)
+						</code>
+					</pre>
+				</section>
+
+				<section>
+					<br/>
+					<br/>
+					<br/>
+					· 高阶函数<pre style="padding: 0px; margin-top: 0px; margin-bottom: 0px;">
+						<code style="padding: 0px; margin-top: 0px;" class="go">func adder() func(int) int {
+	sum := 0
+	return func(x int) int {
+		sum += x
+		return sum
+	}
+}
+f := adder()
+f(10)</code>
+					</pre>
+				</section>
+
+				<section>
+					<br/>
+					<br/>
+					<br/>
+					· 缓存函数(科里化)<pre style="padding: 0px; margin-top: 0px;">
+						<code style="padding: 0px; margin-top: 0px;" class="go">func add(a int) func(int) int {
+  return func(b int) int {
+    return a+b
+  }
+}
+f := add(1)
+f(10)
+//add的返回值是一个存储了参数a的函数</code>
+					</pre>
+					<aside class="notes">
+					是把接受多个参数的函数变换成接受一个单一参数(最初函数的第一个参数)的函数，并且返回接受余下的参数且返回结果的新函数
+					</aside>
+				</section>
+			</section>
+
+			<section data-markdown>
+				### function
+				- 多值返回
+				- 方法(值传递,指针传递)
+				- 没有重载
+				- 没有默认参数
+			</section>
+
+			<section>
+				<h3>struct</h3>
+				<pre><code>type AA struct {
+	a int
+}
+type BB struct {
+	AA
+	b int `json:"boy"`
+}
+func (bb *BB) Dump() {
+	fmt.Printf("%v", bb)
+}</code></pre>
+			</section>
+
+			<section data-markdown>
+			<script type="text/template">
+				### interface
+				- 接口定义了一组方法，但是这些方法不包含（实现）代码<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 接口里也不能包含变量<!-- .element: class="fragment" data-fragment-index="1" -->
+				- interface{}与void*<!-- .element: class="fragment" data-fragment-index="2" -->
+				- GO并没有模版,只能用interface模拟一些泛型的功能<!-- .element: class="fragment" data-fragment-index="2" -->
+			</script>
+			</section>
+
+			<section data-markdown>
+				### duck typing
+				- 如果像鸭子一样走路，像鸭子一样呱呱叫，那它就是一只鸭子
+				- Go 语言不是一种 “传统” 的面向对象编程语言：它里面没有类和继承的概念
+				- 类型不需要显式声明它实现了某个接口：接口被隐式地实现
+				- 多个类型可以实现同一个接口,一个类型也可以实现多个接口
+			</section>
+
+			<section data-markdown>
+				### “面向对象”
+				- 封装：C++有3个访问层次，Go把它简化为了2层
+				- 继承：用组合实现：内嵌一个（或多个）包含想要的行为（字段和方法）的类型
+				- 多态：用接口实现：某个类型的实例可以赋给它所实现的任意接口类型的变量
+			</section>
+
+			<section data-markdown>
+				### 其他特性
+				- import
+				- reflect
+				- slice
+				- map
+				- ast
+				- 条件编译
+				- test/benchmark
+				- cgo
+			</section>
+
+			<section data-markdown>
+				### 小结
+				- go是一个强大的语言
+				- go很像“C”，是一个加强版的C
+				- go有自己的规则，不能想当然
+				- 并发很开心，但是也很危险
+			</section>
+
+			<section data-markdown>
+				## 社区服务器
+				#### 不是经验，是遇到问题的解决思路
+				- 朋友圈
+				- 游戏助手/聊天工具
+			</section>
+
+			<section data-markdown>
+				### 朋友圈-无状态服务
+			</section>
+
+			<section data-markdown>
+				### 无状态服务
+				- 对单次请求的处理，服务器没有依赖的上下文
+				<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 不依赖上下文不是没有数据，只是数据都在数据库，服务器程序只负责操作数据
+				<!-- .element: class="fragment" data-fragment-index="2" -->
+				- 所以对于社区服务器，无状态的只是程序，状态在MongoDB和Redis
+				<!-- .element: class="fragment" data-fragment-index="3" -->
+			</section>
+
+			<section data-markdown>
+				### 无状态服务的好处
+				- 用户之间、请求之间没有太多的数据关联
+				- 请求之间可以并行，每次请求都可以是一个线程
+				- 由于数据都在数据库，所以程序重启产生的影响小
+			</section>
+
+			<section data-markdown>
+				### 例子
+				- 权限验证
+					* 通过统一的服务器完成权限验证
+					* 验证通过,服务器产生一个Token分别发给App和存到数据库中
+					* App请求鉴权,就是把App发来的Token与数据中的Token做比较
+				- 发布动态
+				- 评论动态
+				- 等等...
+			</section>
+
+			<section data-markdown>
+			<script type="text/template">
+				### 但是
+				- 并不是所有无状态的请求，都能够完全并发<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 如果两个请求对同一个数据操作，就有可能产生竞争访问<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 例如:对动态点赞<!-- .element: class="fragment" data-fragment-index="1" -->
+					- 记录点赞的人（记录点赞的时间）
+					- 记录点赞数量
+			</script>
+			</section>
+
+			<section data-markdown>
+				### 对动态点赞
+				<pre>
+					<code class="go">
+					func I_Like_This_Moment(userId uint32, momentID string){
+						if I_Dont_Like_It_Before(userId, momentID){
+							Add_Moment_Like_Num(momentID, 1)
+							I_Do_Like_It(userId, momentID)
+						}
+					}
+					go I_Like_This_Moment(123, "m123")
+					go I_Like_This_Moment(123, "m123")
+					</code>
+				</pre>
+				I_Like_This_Moment函数如果在两个线程中调用，可能出现重复点赞
+			</section>
+
+			<section data-markdown>
+				### 方案1
+				- 把竞争访问的部分用数据库的_原子操作_ 代替
+					* 例如Redis，对于每次操作都是原子性的
+					* 对于某个动态的点赞列表其实就是一个Set数据结构（用momentID做key）
+					* 把点赞操作转化为SADD操作
+					* 为了加速访问，把点赞数（SCARD操作）缓存到MongoDB关于动态的文档中
+			</section>
+
+			<section data-markdown>
+				### 方案2
+				- 用_线程池_ 使操作串行化，对于相同动态的点赞操作不并发执行
+					* 启动N个线程
+					* 利用_momentID_ **mod** _N_ 将每个点赞动态操作分布到不同的线程中
+					* 保证相同动态的点赞操作在同一线程中执行
+			</section>
+
+			<section data-markdown>
+				### 方案3
+				- 用_锁_ 使操作串行化，对相同动态的并发点赞操作不并行
+					* 使用Go内置的组件_sync.mutex_ 
+					* 为了减少锁的粒度，可以做一组（N个）mutex
+					* 使用_momentID_ **mod** _N_  选择mutex
+				<pre>
+				<code>
+					mutex[id % N].Lock()
+					defer mutex[id % N].UnLock()
+				</code></pre>
+			</section>
+
+			<section data-markdown>
+				### 进程/线程
+				- 以上的两种操作串行化是在同一个进程中进行
+				- 为了在不同进程中也保证操作没有问题
+					* 将请求分配到不同的进程是需要遵守一定的规则（也就是引入一个可以负载均衡的Gateway）
+					* 使用分布式锁
+			</section>
+
+			<section>
+			<section data-markdown>
+				### 分布式锁
+				- 使用一致性协议实现
+					- paxos(zookeeper)
+					- raft(etcd)
+					- [raft介绍](https://raft.github.io/)
+					- [raft动态介绍](http://thesecretlivesofdata.com/raft/)
+					- [**龙舟** -go实现的raft库](https://github.com/lni/dragonboat)
+				- 使用数据库原子操作实现
+					- redis的SET操作的NX属性
+			</section>
+			<section data-background-iframe="https://raft.github.io/" data-background-interactive></section>
+			<section data-background-iframe="http://thesecretlivesofdata.com/raft/" data-background-interactive></section>
+			<section data-background-iframe="https://github.com/lni/dragonboat" data-background-interactive></section>
+			</section>
+
+			<section>
+			<section data-markdown>
+				### 基于redis的分布式锁
+				- 使用SET操作的NX属性: SET if Not eXists
+				<pre>
+					<code class="lua">
+					//加锁: 返回1标识获取锁，0标识资源被别人锁定
+					SET lock.foo MyRandomData NX PX 5000
+					//解锁: 使用lua脚本，保证解除的是自己的锁定
+					if redis.call("GET",KEYS[1]) == ARGV[1]
+					then
+						return redis.call("DEL",KEYS[1])
+					else
+						return 0
+					end
+					EVAL ...script... 1 lock.foo MyRandomData
+					</code>
+				</pre>
+			</section>
+			<section data-background-iframe="https://redis.io/topics/distlock" data-background-interactive></section>
+			</section>
+
+			<section data-markdown>
+			<script type="text/template">
+				### 为每个新“话题”分配唯一ID
+				- 获取话题的唯一ID，成功择返回<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 通过Incr指令获取一个唯一ID作为备胎<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 通过SetNX方式设置备胎<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 如果成功，则备胎转正<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 如果失败，则重新获取话题的唯一ID<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 代价：可能有备胎被浪费<!-- .element: class="fragment" data-fragment-index="2" -->
+			</script>
+			</section>
+
+			<section data-markdown>
+				### 小结
+				- 对于关联不强的操作，可以设计成无状态的服务
+				- 无状态可以是天生的，也可以是被设计出来的
+				- 只要对同一数据进行并发操作，就要注意互斥
+				- 互斥可以通过安排操作序列实现，也可以通过锁实现
+				- 锁的实现可以是集中式的，也可以是分布式的
+			</section>
+
+			<section data-markdown>
+				### 游戏助手/聊天工具-用消息队列解耦
+			</section>
+
+			<section data-markdown>
+				### 消息队列
+				- 生产者把数据分类，放入队列
+				- 消费者按需从队列中获取数据
+				- 消息队列解耦了那些信息
+					- 生产者不知道，也不需要知道它的数据要给那个消费者处理
+					- 消费者也不知道数据是那个生产者发出的
+			</section>
+
+			<section data-markdown>
+				### 消息队列实现
+				- 基于Redis
+					- 使用Pub/Sub命令
+					- 使用RPush/BLPop命令
+				- 用代码实现一个进程中的MQ
+					- 用sync.map管理订阅对象者
+					- 用函数闭包执行订阅回调
+					- 实现一个类似ChannelGroup的属性
+			</section>
+
+			<section data-markdown>
+				### 来自游戏服务器的消息分发
+				- H5服务其实相当于一个转发的路由器
+				- 一组线程负责接收来自游戏的消息并发布到不同的主题
+					- "zo.区号","ch.CharID","sp.家族ID","co.有区号的国家ID"
+				- 每个H5用户处理线程订阅相应的主题
+					- 自己的CharID,国家,家族,等等
+			</section>
+
+			<section data-markdown>
+				### 聊天处理
+				- 还是一个路由器
+				- 所有聊天请求都发送到聊天管理器
+				- 聊天管理器为所有的聊天消息存档并分配相应的主题
+					- 主题组织形式：CHAT:游戏ID,聊天类型,区ID,来源ID
+				- 每个登陆的app客户端都向聊天管理器订阅自己感兴趣主题(s)
+				- 用户在app中切换游戏/游戏区,只用改变订阅的主题
+			</section>
+
+			<section data-markdown>
+				### 聊天处理-离线消息
+				- 群聊消息
+					- 所有用户公用一个群聊天队列
+					- App客户端维护lastUniuqeID
+				- 私聊消息
+					- 尝试用消息队列通知App客户端
+					- 对于通知失败的消息，加入私聊回话离线列表
+				- 现在App服务器的消息队列是在线程间通讯，如果需要分布多台主机，也可以改成多进程的消息队列模型
+			</section>
+
+			<section data-markdown>
+			<script type="text/template">
+				### 但是
+				- 消息队列解耦也会造成信息的缺失<!-- .element: class="fragment" data-fragment-index="1" -->
+					- 生产者离线，消费者不知道怎么回事
+					- 消费者离线，生产者也不会收到相应事件
+				- 消息队列有可能成为系统的瓶颈<!-- .element: class="fragment" data-fragment-index="1" -->
+				- 消息队列对消息处理顺序不一定提供保证<!-- .element: class="fragment" data-fragment-index="1" -->
+			</script>
+			</section>
+
+			<section data-markdown>
+				### 小结
+				- 消息队列可以解耦信息
+				- 消息队列可能成为系统的瓶颈
+				- 消息队列选型要根据具体应用考量
+			</section>
+
+			<section data-markdown>
+				# 总结
+			</section>
+		</div>
+	</div>
+
+	<script src="js/reveal.js"></script>
+	<script src="js/NoSleep.js"></script>
+	<script src="js/qrcode.js"></script>
+
+	<script>
+		// More info about config & dependencies:
+		// - https://github.com/hakimel/reveal.js#configuration
+		// - https://github.com/hakimel/reveal.js#dependencies
+		Reveal.initialize({
+			controls: true,
+			slideNumber: true,
+			hash: true,
+			navigationMode: 'default',
+			transition: 'slide', // none/fade/slide/convex/concave/zoom
+			transitionSpeed: 'default', // default/fast/slow
+			backgroundTransition: 'fade', // none/fade/slide/convex/concave/zoom
+			embedded: false,
+			hideAddressBar: true,
+			previewLinks: true,
+
+			//width: 960,
+			//height: 700,
+			margin: 0,
+
+			dependencies: [
+				{ src: 'reveal.js/plugin/markdown/marked.js' },
+				{ src: 'reveal.js/plugin/markdown/markdown.js' },
+				{ src: 'reveal.js/plugin/notes/notes.js', async: true },
+				{ src: 'reveal.js/plugin/highlight/highlight.js', async: true },
+				{ src: 'reveal.js/socket.io/socket.io.js', async: true },
+				{ src: 'reveal.js/plugin/notes-server/client.js', async: true },
+				{ src: 'reveal.js/socket.io/socket.io.js', async: true },
+				{ src: 'reveal.js/plugin/notes-server/client.js', async: true }
+			]
+		})
+
+		var noSleep = new NoSleep();
+
+		var wakeLockEnabled = false;
+		var toggleEl = document.querySelector("#toggle");
+		toggleEl.addEventListener('click', function() {
+			if (!wakeLockEnabled) {
+			noSleep.enable(); // keep the screen on!
+			wakeLockEnabled = true;
+			toggleEl.value = "防止休眠开启";
+			} else {
+			noSleep.disable(); // let the screen turn off.
+			wakeLockEnabled = false;
+			toggleEl.value = "Wake Lock is disabled";
+			}
+		}, false);
+		
+
+		var qrcode = new QRCode('qrcode', {
+			text: 'your content',
+			width: 256,
+			height: 256,
+			colorDark : '#000000',
+			colorLight : '#ffffff',
+			correctLevel : QRCode.CorrectLevel.H
+			});
+
+		var drawNotesUrl = function(notesUrl){
+			// 使用 API
+			qrcode.clear();
+			qrcode.makeCode(notesUrl);
+		}
+
+	</script>
+</body>
+
+</html>
