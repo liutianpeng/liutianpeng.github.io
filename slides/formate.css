@@ -10,6 +10,12 @@ conception {
   font: bold;
 }
 
+sorry {
+  color: darkorange;
+  font: bold;
+}
+
+
 /*封面.标题*/
 [fm=cover-title] {
   text-align: center;
@@ -26,7 +32,7 @@ conception {
 
 /*内容页*/
 [fm=page] {
-  font-size: 25px;
+  font-size: 23px;
 }
 
 /*内容页.标题*/
