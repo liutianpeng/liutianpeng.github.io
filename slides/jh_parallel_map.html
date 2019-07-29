@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title></title>
+  <style>
+    canvas {
+      width: 100%;
+      height: 100%
+    }
+  </style>
+  <script src="three.js/three.js"></script>
+</head>
+
+<body>
+  <script>
+    var canvas;
+    var fov =70
+    var near = 0.1
+    var far = 1000
+
+    var cameraX = -10
+    var cameraY = 6
+
+    var scene;
+    var renderer;
+    var camera;
+
+    function initThree() {
+      let width = canvas.clientWidth;
+      let height = canvas.clientHeight;
+
+      renderer = new THREE.WebGLRenderer({
+        antialias: true
+      });
+      renderer.setSize(width, height);
+      canvas.appendChild(renderer.domElement);
+      //renderer.setClearColor(0xFFFFFF, 1.0);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(fov, width / height, near, far);
+      camera.position.set(cameraX, cameraY, 0);
+      camera.lookAt(new THREE.Vector3(0,0,0));
+    }
+
+    var mapA;
+    var mapB;
+    var play;
+    var tex1;
+    var tex2;
+    var tex3;
+    var tex4;
+    var tex5;
+    let MaxSize = 20;
+    function initObject() {
+      var textureLoader = new THREE.TextureLoader();
+      textureLoader.load('../image/box2.png', function(texture){
+        tex2 = texture
+      })
+      textureLoader.load('../image/box3.png', function(texture){
+        tex3 = texture
+      })
+      textureLoader.load('../image/box4.png', function(texture){
+        tex4 = texture
+      })
+      textureLoader.load('../image/box5.png', function(texture){
+        tex5 = texture
+      })
+
+      textureLoader.load('../image/box.png', function(texture){
+        let m;
+
+        tex1 = texture
+
+        builder = function(yIndex){
+          m = new Array()
+          for (let i = 0; i<MaxSize; i++) {
+            m.push(new Array())
+            for(let j=0; j<MaxSize; j++){
+              let geometry = new THREE.CubeGeometry(1, 0.2, 1);
+              //let material = new THREE.MeshBasicMaterial({ color: 0x60FF60 });
+              //var material = new THREE.MeshPhongMaterial( { map: THREE.ImageUtils.TextureLoader('../image/box.png') } );
+              let material = new THREE.MeshBasicMaterial({map: tex1})
+              material.transparent = false
+              material.opacity = 0.9
+              let cell = new THREE.Mesh(geometry, material);
+              cell.logic = {i:i, j:j, map:yIndex>0?"B":"A"}
+              cell.visible = yIndex>0
+              cell.position.x = cell.logic.i
+              cell.position.z = -MaxSize/2-cell.logic.j
+              cell.position.y = yIndex
+              scene.add(cell);
+              m[i].push(cell)
+            }
+          }
+        }
+
+        builder(-3)
+        mapA = m;
+
+        builder(3)
+        mapB = m;
+      })
+
+      //var geometry = new THREE.SphereGeometry(2,12,12);
+      //var material = new THREE.MeshBasicMaterial({ color: 0x606060 });
+      //cube = new THREE.Mesh(geometry, material);
+      //scene.add(cube);
+    }
+
+    var light;
+    function initLight() {
+      light = new THREE.DirectionalLight(0xFF0000, 1.0, 0);
+      light.position.set(100, 100, 200);
+      scene.add(light);
+    }
+
+    function render() {
+      //requestAnimationFrame(render);
+      //cube.rotation.x += 0.1;
+      //cube.rotation.y += 0.1;
+      renderer.render(scene, camera);
+    }
+
+    function threeStart() {
+      canvas = document.getElementById('canvas-frame')
+      initThree();
+      //initLight();
+      initObject();
+      window.setInterval(render, 33)
+      canvas.addEventListener('mousewheel', mousewheel, false);
+    }
+        //render();
+
+    function mousewheel(e) {
+      e.preventDefault();
+      if (e.wheelDelta) {  //判断浏览器IE，谷歌滑轮事件
+          if (e.wheelDelta > 0) { //当滑轮向上滚动时
+              fov -= (near < fov ? 1 : 0);
+          }
+
+          if (e.wheelDelta < 0) { //当滑轮向下滚动时
+              fov += (fov < far ? 1 : 0);
+          }
+      } else if (e.detail) {  //Firefox滑轮事件
+          if (e.detail > 0) { //当滑轮向上滚动时
+              fov -= 1;
+          }
+
+          if (e.detail < 0) { //当滑轮向下滚动时
+              fov += 1;
+          }
+      }
+
+      //改变fov值，并更新场景的渲染
+      camera.fov = fov;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+    }
+
+        var startX,endX,startY,endY;
+        function onMouseDown(event) {
+            startX = event.clientX;
+            startY = event.clientY;
+        }
+        function onMouseMove(event){
+          //console.log("οnmοusemοve ", event )
+            if (event.buttons == 1 ) {
+                endX = event.clientX;
+                endY = event.clientY;
+                var x=endX-startX;
+                var y=endY-startY;
+                if (Math.abs(x)>Math.abs(y)) {
+                    camera.position.z=camera.position.z-x*0.05;
+                } else {
+                    camera.position.y=camera.position.y+y*0.05;
+                }
+                startX=endX;
+                startY=endY;
+            }
+        }
+
+    var insI = -1;
+    var insJ = -1;
+    var insM = "";
+    var started = false
+
+    function isIntrestion(i,j){
+      if (insI<0 && insJ <0){
+        return false
+      }
+      if (i>=insI-1 && i<=insI+1 && j>=insJ-1 && j<=insJ+1){
+        return true
+      }
+      return false
+    }
+
+    function initMap(){
+      for(let i=0; i<MaxSize; i++) {
+        for(let j=0; j<MaxSize; j++) {
+          mapA[i][j].visible = true
+          mapB[i][j].visible = true
+          if (j>2&&j<6 && i>0 && i<6){
+            mapA[i][j].material.map = tex3
+            mapB[i][j].material.map = tex1
+            if (isIntrestion(i, j)) { mapA[i][j].material.map = tex4 }
+            if (insI==i&&insJ==j) { mapA[i][j].material.map = tex5 }
+          }else if ( j==2&&(i>=0 && i<=6) || j==6&&(i>=0&&i<=6) || i==0&&(j>2&&j<6) || i==6&&j>2&&j<6 ){ 
+            mapA[i][j].material.map = tex2
+            mapB[i][j].material.map = tex2
+            if (isIntrestion(i, j)) { mapA[i][j].material.map = tex4; mapB[i][j].material.map = tex4 }
+            if (insI==i&&insJ==j) { if (insM=="A") {mapA[i][j].material.map = tex5} if (insM=="B") {mapB[i][j].material.map = tex5} }
+          }else{
+            mapA[i][j].material.map = tex1
+            mapB[i][j].material.map = tex3
+            if (isIntrestion(i, j)) { mapB[i][j].material.map = tex4 }
+            if (insI==i&&insJ==j) { mapB[i][j].material.map = tex5 }
+          }
+        }
+      }
+    }
+
+
+    var raycaster = new THREE.Raycaster();
+    var mouse = new THREE.Vector2();
+    function onMouseClick( event ) {
+      console.debug("click")
+      mouse.x = ( event.clientX / canvas.clientWidth ) * 2 - 1;
+      mouse.y = - ( event.clientY / canvas.clientHeight ) * 2 + 1;
+      raycaster.setFromCamera( mouse, camera );
+      var intersects = raycaster.intersectObjects( scene.children );
+      if (intersects.length>0) {
+        console.log(intersects[0].object.logic);
+        insI = intersects[0].object.logic.i
+        insJ = intersects[0].object.logic.j
+        insM = intersects[0].object.logic.map
+        if (started){
+          initMap()
+        }
+      }
+    }
+  </script>
+
+  <body onload="threeStart();">
+    <div id="canvas-frame" style="width: 800px; height: 600px"  onclick="onMouseClick(event)" onmousedown="onMouseDown(event)" onmousemove="onMouseMove(event)"></div>
+    <button onclick="insI=-1; insJ=-1; started=true; initMap()" style="position:fixed; top: 10px; left: 10px;">Init</button>
+  </body>
+
+</body>
+
+</html>
