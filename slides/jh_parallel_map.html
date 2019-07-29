@@ -166,10 +166,11 @@
       render()
     }
 
-        var startX,endX,startY,endY;
+        var startX,endX,startY,endY,notClick;
         function onMouseDown(event) {
             startX = event.clientX;
             startY = event.clientY;
+            notClick = false;
         }
         function onMouseMove(event){
           //console.log("οnmοusemοve ", event )
@@ -187,8 +188,8 @@
                 }
                 startX=endX;
                 startY=endY;
+                notClick = true;
                 render()
-                console.log("οnmοusemοve ", event.clientX,event.clientX )
             }
         }
 
@@ -237,9 +238,10 @@
     var raycaster = new THREE.Raycaster();
     var mouse = new THREE.Vector2();
     function onMouseClick( event ) {
-      console.debug("click")
-      mouse.x = ( event.clientX / canvas.clientWidth ) * 2 - 1;
-      mouse.y = - ( event.clientY / canvas.clientHeight ) * 2 + 1;
+      if (notClick) return
+      console.debug("click", (event.clientX-canvas.offsetLeft) , (event.clientY-canvas.offsetTop) )
+      mouse.x = ( (event.clientX-canvas.offsetLeft) / canvas.clientWidth ) * 2 - 1;
+      mouse.y = - ( (event.clientY-canvas.offsetTop) / canvas.clientHeight ) * 2 + 1;
       raycaster.setFromCamera( mouse, camera );
       var intersects = raycaster.intersectObjects( scene.children );
       if (intersects.length>0) {
