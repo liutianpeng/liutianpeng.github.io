@@ -83,11 +83,12 @@
               let material = new THREE.MeshBasicMaterial({map: tex1})
               material.transparent = false
               material.opacity = 0.9
+              material.lightMapIntensity = 1
               let cell = new THREE.Mesh(geometry, material);
               cell.logic = {i:i, j:j, map:yIndex>0?"B":"A"}
               cell.visible = yIndex>0
               cell.position.x = cell.logic.i
-              cell.position.z = -MaxSize/2-cell.logic.j
+              cell.position.z = MaxSize/2-cell.logic.j
               cell.position.y = yIndex
               scene.add(cell);
               m[i].push(cell)
@@ -110,9 +111,13 @@
 
     var light;
     function initLight() {
-      light = new THREE.DirectionalLight(0xFF0000, 1.0, 0);
-      light.position.set(100, 100, 200);
+      light = new THREE.DirectionalLight(0xF0F0F0, 1.5);
+      light.position.set(10, 20, 10);
+      light.castShadow = true;
       scene.add(light);
+
+      var helper = new THREE.CameraHelper(light.shadow.camera );
+      scene.add(helper);
     }
 
     function render() {
@@ -127,7 +132,8 @@
       initThree();
       //initLight();
       initObject();
-      window.setInterval(render, 33)
+      //window.setInterval(render, 33)
+      render();
       canvas.addEventListener('mousewheel', mousewheel, false);
     }
         //render();
@@ -155,7 +161,7 @@
       //改变fov值，并更新场景的渲染
       camera.fov = fov;
       camera.updateProjectionMatrix();
-      renderer.render(scene, camera);
+      render()
     }
 
         var startX,endX,startY,endY;
@@ -177,6 +183,7 @@
                 }
                 startX=endX;
                 startY=endY;
+                render()
             }
         }
 
@@ -218,6 +225,7 @@
           }
         }
       }
+      render()
     }
 
 
@@ -243,7 +251,7 @@
 
   <body onload="threeStart();">
     <div id="canvas-frame" style="width: 800px; height: 600px"  onclick="onMouseClick(event)" onmousedown="onMouseDown(event)" onmousemove="onMouseMove(event)"></div>
-    <button onclick="insI=-1; insJ=-1; started=true; initMap()" style="position:fixed; top: 10px; left: 10px;">Init</button>
+    <button onclick="insI=-1; insJ=-1; started=true; initMap()" style="position:fixed; top: 10px; left: 10px;">Init Parallel Map</button>
   </body>
 
 </body>
