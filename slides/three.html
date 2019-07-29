@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title></title>
+  <style>
+    canvas {
+      width: 100%;
+      height: 100%
+    }
+  </style>
+  <script src="three.js/three.js"></script>
+</head>
+
+<body>
+  <script>
+    var scene;
+    var renderer;
+    var camera;
+
+    function initThree() {
+      let canvas = document.getElementById('canvas-frame')
+      let width = canvas.clientWidth;
+      let height = canvas.clientHeight;
+
+      renderer = new THREE.WebGLRenderer({
+        antialias: true
+      });
+      renderer.setSize(width, height);
+      canvas.appendChild(renderer.domElement);
+      //renderer.setClearColor(0xFFFFFF, 1.0);
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+      camera.position.z = 5;
+
+    }
+
+    var cube;
+    function initObject() {
+      for (let i = 0; i < 10; i++) {
+        var geometry = new THREE.CubeGeometry(1, 1, 1);
+        var material = new THREE.MeshBasicMaterial({ color: 0x60FF60 });
+        cube = new THREE.Mesh(geometry, material);
+        cube.position.x = i
+        scene.add(cube);
+      }
+
+      //var geometry = new THREE.SphereGeometry(2,12,12);
+      //var material = new THREE.MeshBasicMaterial({ color: 0x606060 });
+      //cube = new THREE.Mesh(geometry, material);
+      //scene.add(cube);
+    }
+
+    var light;
+    function initLight() {
+      light = new THREE.DirectionalLight(0xFF0000, 1.0, 0);
+      light.position.set(100, 100, 200);
+      scene.add(light);
+    }
+
+    function render() {
+      //requestAnimationFrame(render);
+      //cube.rotation.x += 0.1;
+      //cube.rotation.y += 0.1;
+      renderer.render(scene, camera);
+    }
+
+    function threeStart() {
+      initThree();
+      //initLight();
+      initObject();
+      window.setInterval(render, 30)
+    }
+        //render();
+  </script>
+
+  <body onload="threeStart();">
+    <div id="canvas-frame" style="width: 800px; height: 600px"></div>
+  </body>
+
+</body>
+
+</html>
