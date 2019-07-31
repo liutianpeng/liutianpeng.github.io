@@ -296,7 +296,7 @@
 						<br/>
 						<li>中土大陆
 							<ul>
-								<li>第一次尝试手游项目的开发，但是基本还是走的端游模式</li>
+								<li>第一次尝试手游项目的开发</li>
 								<li>向程辉（客户端负责人）学习一些面向对象的程序设计方法，以及功能划分的方法</li>
 							</ul>
 						</li>
@@ -312,8 +312,8 @@
 						<ul>
 							<li>怦怦英雄是在孵化部制作的一款休闲竞技手游，支持单人匹配，组队匹配，天梯排位
 								<ul>
-									<li>完全可破坏的地形</li>
-									<li>每个角色，技能都有自己的物理属性（形状，质量，重力系数，阻尼...）</li>
+									<li>可完全破坏的地形</li>
+									<li>每个角色，技能都有自己的物理属性（形状，质量，重力系数...）</li>
 									<li>使用状态同步的方式</li>
 								</ul>
 							</li>
@@ -419,7 +419,7 @@
 				</section>
 
 				<section fm=page id="server_arch">
-					<p fm=page-title>基础框架</p>
+					<p fm=page-title>MMO框架</p>
 					<p fm=page-comment>其实是对场景服务器的一种拆分</p>
 					<p fm=page-content>
 						<ul>
@@ -434,7 +434,7 @@
 									<li>负责与地图无关的部分</li>
 									<li>从玩家（客户端）的角度看，凡是不能直接观察的其它玩家的功能，都是在这里处理的</li>
 									<li>从数据角度看，这里的操作是只对自己的数据操作，不对其他人数据进行操作</li>
-									<li>典型的功能有装备相关，任务相关...</li>
+									<li>典型的功能有装备相关...</li>
 								</ul>
 							</li>
 							<li>场景（Scene）
@@ -455,7 +455,7 @@
 				</section>
 
 				<section fm=page>
-					<p fm=page-title>基础框架</p>
+					<p fm=page-title>MMO框架</p>
 					<p fm=page-comment>对于技能的处理</p>
 					<p fm=page-content>
 						<ul>
@@ -466,6 +466,7 @@
 							<li>在Scene的设计上采用“Map-->User”的模式，Map可以读取User的数据，但是不对User提供GetUserByID方法，每个User只能处理自己的数据</li>
 							<br/>
 							<li>另一种思路：把技能完全理解为PkData与PkData的运算，由独立的Worker完成，这样PK相关的数据就可以存放在Scene中，减少Game对Scene数据同步</li>
+							<li>关于数据所有权问题：需要细粒度的数据所有权处理（装备耐久度）；通过策划规避（使用技能扣银子）</li>
 						</ul>
 					</p>
 				</section>
