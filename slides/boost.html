@@ -100,7 +100,7 @@
 							<li>一个<conception>stage</conception>包含两个部分：<conception>inputs</conception>，<conception>actions</conception>，每次Npc循环时执行</li>
 							<li><conception>inputs</conception>负责根据条件跳转，每轮<conception>stage</conception>运行都会检查，判断是否发生跳转</li>
 							<li><conception>actions</conception>是动作，按照顺序无限循环运行</li>
-							<li>每个<conception>action</conception>都有持续时间（结束条件），<conception>halt</conception>命令会终止<conception>actions</conception>的循环</li>
+							<li>每个<conception>action</conception>都可以有持续时间（0表示立即结束），等待持续时间的过程类似js的await</li>
 						</ul>
 					</p>
 				</section>
