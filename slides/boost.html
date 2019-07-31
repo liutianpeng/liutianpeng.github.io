@@ -107,35 +107,41 @@
 
 				<section fm=page>
 					<p fm=page-title>Npc脚本</p>
-					<div style="float: left;width: 50%"><pre><code class="hljs html">
+					<div style="float: left;width: 50%;font-size: 33px"><pre><code class="hljs html">
 <stage stageid="52501" log="初始化[封印幻象]">
-	<inputs nextstage="52502">
-		<actiondone></actiondone>
-	</inputs>
-	<actions>
-		<pause lasttime="2" ></pause>
-		<changeNpc npcid="524" ></changeNpc>
-		<sendCode code="525" roleid="525" scene="1" ></sendCode>
-		<pause lasttime="30" ></pause>
-		<changeNpc npcid="525" ></changeNpc>
-		<halt ></halt>
-	</actions>
+  <inputs nextstage="52502">
+    <actiondone></actiondone>
+  </inputs>
+  <actions>
+    <pause lasttime="2" ></pause>
+    <changeNpc npcid="524" ></changeNpc>
+    <sendCode code="525" roleid="525" scene="1" ></sendCode>
+    <pause lasttime="30" ></pause>
+    <changeNpc npcid="525" ></changeNpc>
+    <halt ></halt>
+  </actions>
 </stage>
 					</code></pre></div>
-					<div style="float: left;width: 50%"><pre><code class="hljs html">
+					<div style="float: left;width: 50%;font-size: 33px"><pre><code class="hljs html">
 <stage stageid="52502" log="初始化[封印幻象]">
-	<inputs nextstage="52502">
-		<actiondone ></actiondone>
-	</inputs>
-	<inputs nextstage="52501">
-		<hascode code="525" ></hascode>
-	</inputs>
-	<actions>
-		<setrole roleid="525" ></setrole>
-	</actions>
+  <inputs nextstage="52502">
+    <actiondone ></actiondone>
+  </inputs>
+  <inputs nextstage="52501">
+    <hascode code="525" ></hascode>
+  </inputs>
+  <actions>
+    <setrole roleid="525" ></setrole>
+  </actions>
 </stage>
 					</code></pre></div>
 				</section>
+
+				<section>
+					<p fm=page-title>SVN提交量</p>
+					<img data-src="../image/zt2_commit.jpg">
+				</section>
+
 			</section>
 
 			<section fm=page>
