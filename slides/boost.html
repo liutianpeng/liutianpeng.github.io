@@ -335,21 +335,26 @@
 
 				<section>
 					<p fm=page-title>怦怦英雄-宣传视频</p>
-					<video controls="controls" src="https://liutianpeng.github.io/video/ppyx.mp4"></video>
+					<video controls="controls" src="../video/ppyx.mp4"></video>
 				</section>
 
 				<section data-background-size="contain" data-background-repeat="no-repeat"
-					data-background-image="https://liutianpeng.github.io/image/怦怦英雄-服务器结构.png">
+					data-background-image="../image/怦怦英雄-服务器结构.png">
 				</section>
 
 				<section>
-					<p fm=page-title>地图的实际结构</p>
-					<img data-src="https://liutianpeng.github.io/image/ppyx-phy-map.png">
+					<p fm=page-title>美术提供的地形</p>
+					<img data-src="../image/ppyx-map_111.png">
+				</section>
+
+				<section>
+					<p fm=page-title>地形的实际结构</p>
+					<img data-src="../image/ppyx-phy-map.png">
 				</section>
 
 				<section>
 					<p fm=page-title>地形破坏</p>
-					<img data-src="https://liutianpeng.github.io/image/ppyx-phy-dig.gif">
+					<img data-src="../image/ppyx-phy-dig.gif">
 				</section>
 			</section>
 
@@ -376,11 +381,11 @@
 				</section>
 
 				<section data-background-size="contain" data-background-repeat="no-repeat"
-					data-background-image="https://liutianpeng.github.io/image/社区-服务器结构.png">
+					data-background-image="../image/社区-服务器结构.png">
 				</section>
 
 				<section data-background-size="contain" data-background-repeat="no-repeat"
-					data-background-image="https://liutianpeng.github.io/image/社区-API.png">
+					data-background-image="../image/社区-API.png">
 				</section>
 			</section>
 
@@ -399,17 +404,64 @@
 
 				<section>
 					<p fm=page-title>社会关系-分层结构</p>
-					<img data-src="https://liutianpeng.github.io/image/社会关系-分层结构.png">
+					<img data-src="../image/社会关系-分层结构.png">
 				</section>
 
 				<section>
 					<p fm=page-title>社会关系-数据库结构</p>
-					<img data-src="https://liutianpeng.github.io/image/社会关系-数据库结构.png">
+					<img data-src="../image/社会关系-数据库结构.png">
 				</section>
 
-				<section>
+				<section fm=page id="server_arch">
 					<p fm=page-title>基础框架</p>
-					<img data-src="https://liutianpeng.github.io/image/基础框架-mmo-1.png">
+					<p fm=page-comment>其实是对场景服务器的一种拆分</p>
+					<p fm=page-content>
+						<ul>
+							<li>网关（Agent）
+								<ul>
+									<li>负责处理客户端连接</li>
+									<li>登陆验证，消息转发</li>
+								</ul>
+							</li>
+							<li>角色（Game）
+								<ul>
+									<li>负责与地图无关的部分</li>
+									<li>从玩家（客户端）的角度看，凡是不能直接观察的其它玩家的功能，都是在这里处理的</li>
+									<li>从数据角度看，这里的操作是只对自己的数据操作，不对其他人数据进行操作</li>
+									<li>典型的功能有装备相关，任务相关...</li>
+								</ul>
+							</li>
+							<li>场景（Scene）
+								<ul>
+									<li>负责处理地图相关的数据，管理九屏信息，sendNineToMe以及sendMeToNine都会这处理</li>
+									<li>从玩家（客户端）的角度看，能够给别人看的功能都在这里</li>
+									<li>从数据角度看，这里的处理单位是地图，处理特定地图上的所有数据</li>
+								</ul>
+							</li>
+							<li>世界（World）
+								<ul>
+									<li>用于管理整个服务器的状态</li>
+									<li>地图注册，唯一ID生成；角色登陆，角色位置</li>
+								</ul>
+							</li>
+						</ul>
+					</p>
+				</section>
+
+				<section fm=page>
+					<p fm=page-title>基础框架</p>
+					<p fm=page-comment>对于技能的处理</p>
+					<p fm=page-content>
+						<ul>
+							<li>根据之前江湖的经验，把技能分成释放，寻找目标，计算伤害三个部分</li>
+							<li>释放：可以在Scene完成</li>
+							<li>寻找目标：必须有完成的9屏数据才能完成，所以必须在Scene完成（或者委托客户端完成，服务器负责校验）</li>
+							<li>伤害计算：可以在Game完成，因为伤害计算只需要有PK数据就可以完成</li>
+							<li>在Scene的设计上采用“Map-->User”的模式，Map可以读取User的数据，但是不对User提供GetUserByID方法，每个User只能处理自己的数据</li>
+							<br/>
+							<li>另一种思路：把技能完全理解为PkData与PkData的运算，由独立的Worker完成，这样PK相关的数据就可以存放在Scene中，减少Game对Scene数据同步</li>
+						</ul>
+					</p>
 				</section>
 			</section>
 
@@ -435,6 +487,12 @@
 								<li>中土大陆 -负责服务端，制作人离职撤销</li>
 								<li>怦怦英雄 -负责服务端，测试数据不佳撤销</li>
 								<li>征途大神社区 -负责后端，上线时间待工作室统一安排</li>
+							</ul>
+						</li>
+						<br/>
+						<li style="text-decoration-line: line-through">未立项的项目
+							<ul>
+								<li>征途战神版，3D碰碰车，征途放置奇兵</li>
 							</ul>
 						</li>
 					</ul>
@@ -467,23 +525,21 @@
 			</section>
 
 			<section fm=page>
-				<section><h2>总结</h2></section>
-				<section id="jh-ParallelMapGif" data-background-image="https://liutianpeng.github.io/image/jh_parallel_map.gif" data-background-size="contain" data-background-repeat="no-repeat">
+				<section><h2>结束</h2></section>
+
+				<section id="jh-ParallelMapGif" data-background-image="../image/jh_parallel_map.gif" data-background-size="contain" data-background-repeat="no-repeat">
 					<p fm=page-comment><a href="#/jh-ParallelMap">Go Back</a></p>
 				</section>
+
+				<section>
+					<p fm=page-title>基础框架</p>
+					<img data-src="../image/基础框架-mmo-1.png">
+				</section>
+
 			</section>
 
 			<!------------------------------------>
 			
-			<section fm=page>
-				<p fm=page-title>标题</p>
-				<p fm=page-comment>说明</p>
-				<p fm=page-content>正文
-				</p>
-			</section>
-
-
-
 		</div>
 	</div>
 
