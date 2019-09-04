@@ -1,0 +1,281 @@
+<html>
+
+<head>
+    <script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"></script>
+</head>
+
+<body>
+    <canvas style="border:1px solid rgb(0, 0, 0)" id="canvas" width="800px" height="600px"></canvas>
+
+    <script lang="javascript">
+        function createShader(gl, type, source) {
+            var shader = gl.createShader(type); // 创建着色器对象
+            gl.shaderSource(shader, source); // 提供数据源
+            gl.compileShader(shader); // 编译 -> 生成着色器
+            var success = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+            if (success) {
+                return shader;
+            }
+
+            console.error(type == gl.FRAGMENT_SHADER ? "FRAGMENT_SHADER" : "VERTEX_SHADER")
+            console.log(gl.getShaderInfoLog(shader));
+            gl.deleteShader(shader);
+        }
+
+        function createProgram(gl, vertexShader, fragmentShader) {
+            var program = gl.createProgram();
+            gl.attachShader(program, vertexShader);
+            gl.attachShader(program, fragmentShader);
+            gl.linkProgram(program);
+            var success = gl.getProgramParameter(program, gl.LINK_STATUS);
+            if (success) {
+                return program;
+            }
+
+            console.log(gl.getProgramInfoLog(program));
+            gl.deleteProgram(program);
+        }
+
+        function createAndSetupTexture(gl) {
+            var texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+
+            // 设置材质，这样我们可以对任意大小的图像进行像素操作
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+            return texture;
+        }
+
+        class ShaderProgram {
+            constructor() {
+                this.Program = {}
+                this.VertexAttr = {}
+                this.FragmentAttr = {}
+
+                this.Uniform = {}
+                this.Attribute = {}
+
+                this.gl = null
+            }
+            Init(gl, vSource, fSource) {
+                this.gl = gl
+                this.Program.vertShader = createShader(this.gl, this.gl.VERTEX_SHADER, vSource)
+                this.Program.fragShader = createShader(this.gl, this.gl.FRAGMENT_SHADER, fSource)
+                this.Program.program = createProgram(this.gl, this.Program.vertShader, this.Program.fragShader)
+            }
+
+            InitUniform(attr) {
+                let a = this.gl.getUniformLocation(this.Program.program, attr)
+                if (a == -1) {
+                    console.warn("[ShaderProgram] %s InitUniform 失败 %s", attr, a)
+                }
+                this.Uniform[attr] = a
+            }
+
+            InitAttribute(attr) {
+                let a = this.gl.getAttribLocation(this.Program.program, attr)
+                if (a == -1) {
+                    console.warn("[ShaderProgram] %s InitAttribute 失败 %s", attr, a)
+                }
+                this.Attribute[attr] = a
+            }
+            UseProgram() {
+                this.gl.useProgram(this.Program.program);
+            }
+            EnableVertexAttribArray(attr) {
+                this.gl.enableVertexAttribArray(this.Attribute[attr])
+            }
+            VertexAttribPointer(attr, positionBuffer, size, type, normalize, stride, offset) {
+                this.gl.bindBuffer(this.gl.ARRAY_BUFFER, positionBuffer);
+                this.gl.vertexAttribPointer(
+                    this.Attribute[attr], size, type, normalize, stride, offset)
+                this.gl.enableVertexAttribArray(this.Attribute[attr])
+            }
+            Uniform2f(attr, p1, p2) {
+                this.gl.uniform2f(this.Uniform[attr], p1, p2)
+            }
+            Uniform4f(attr, p0, p1, p2, p3) {
+                this.gl.uniform4f(this.Uniform[attr], p0, p1, p2, p3)
+            }
+
+            Uniform1i(attr, unit, texture) {
+                this.gl.activeTexture(this.gl.TEXTURE0 + unit);
+                this.gl.bindTexture(this.gl.TEXTURE_2D, texture);
+
+                let gl = this.gl
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+
+                this.gl.uniform1i(this.Uniform[attr], unit);
+            }
+        }
+
+        class ImageTexture {
+            constructor(gl, src) {
+                let it = this
+                this.Img = new Image()
+                this.Ok = false
+                this.gl = gl
+                this.Texture = null
+                this.Img.onerror = function (err) {
+                    console.log("error! " + err)
+                }
+                this.Img.onload = function () {
+                    let gl = it.gl
+                    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+                    it.Texture = createAndSetupTexture(gl);
+                    gl.bindTexture(gl.TEXTURE_2D, it.Texture);
+                    gl.texImage2D(gl.TEXTURE_2D,
+                        0,
+                        gl.RGBA,
+                        gl.RGBA,
+                        gl.UNSIGNED_BYTE,
+                        it.Img)
+                    it.Ok = true
+                    console.debug("image load")
+                }
+                this.Img.src = src
+            }
+        }
+
+        var canvas = document.getElementById("canvas");
+        var gl = canvas.getContext("experimental-webgl");
+        var VSHADER_SOURCE = ""
+        var FSHADER_SOURCE = ""
+        var bkImage = new ImageTexture(gl, "./image/1.jpg")
+
+        var shader = new ShaderProgram()
+
+        var positions = [
+            10, 20,
+            80, 20,
+            10, 30,
+            10, 30,
+            80, 20,
+            80, 30,
+        ];
+        var positionBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
+        //gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+
+        var texCoordBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+            0.0, 0.0,
+            1.0, 0.0,
+            0.0, 1.0,
+            0.0, 1.0,
+            1.0, 0.0,
+            1.0, 1.0
+        ]), gl.STATIC_DRAW);
+
+        var level = 0;
+        var width = 2;
+        var height = 1;
+        var data = new Uint8Array([
+            255, 0, 0, 255, // 一个红色的像素
+            0, 255, 0, 255, // 一个绿色的像素
+        ]);
+        var tex = createAndSetupTexture(gl);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, level, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, data);
+
+        function CountObjectProperty(obj) {
+            let count = 0;
+            for (var property in obj) {
+                if (obj[property]) {
+                    count++
+                }
+            }
+            return count
+        }
+
+        function randomInt(range) {
+            return Math.floor(Math.random() * range);
+        }
+
+        function rander() {
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height - 100);
+
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+
+            shader.UseProgram()
+            shader.Uniform2f("u_resolution", gl.canvas.width, gl.canvas.height)
+            shader.Uniform4f("u_color", Math.random(), Math.random(), Math.random(), 1)
+
+            if (bkImage.Ok) {
+                console.log("加载 bkImage")
+                shader.Uniform1i("u_texture", 1, bkImage.Texture)
+                shader.Uniform2f("u_textureSize", bkImage.Img.width, bkImage.Img.height)
+            } else {
+                console.log("加载 tex")
+                shader.Uniform1i("u_texture", 1, tex)
+            }
+
+            var primitiveType = gl.TRIANGLES;
+            var offset = 0;
+            var count = 6;
+            gl.drawArrays(primitiveType, offset, count);
+        }
+
+        function initWebGL() {
+            console.log("-----------initWebGL-----------")
+
+            shader.Init(gl, VSHADER_SOURCE, FSHADER_SOURCE)
+            shader.InitAttribute("a_position");
+            shader.InitAttribute("a_texCoord");
+            shader.InitUniform("u_texture");
+            shader.InitUniform("u_textureSize");
+            shader.InitUniform("u_resolution");
+            shader.InitUniform("u_color");
+
+            var size = 2; // 每次迭代运行提取两个单位数据
+            var type = gl.FLOAT; // 每个单位的数据类型是32位浮点型
+            var normalize = false; // 不需要归一化数据
+            var stride = 0; // 0 = 移动单位数量 * 每个单位占用内存（sizeof(type)）
+            // 每次迭代运行运动多少内存到下一个数据开始点
+            var offset = 0; // 从缓冲起始位置开始读取
+            shader.VertexAttribPointer("a_position", positionBuffer, size, type, normalize, stride, offset)
+
+            shader.VertexAttribPointer("a_texCoord", texCoordBuffer, 2, gl.FLOAT, false, 0, 0)
+
+            //gl.drawArrays(gl.POINTS, 0, 1);
+
+            setInterval(rander, 20)
+        }
+
+        $(document).ready(function () {
+            console.log("-----------Hello WebGL-----------")
+
+            var needSrc = {}
+            needSrc["vertex"] = "./vertex-sample.glsl"
+            needSrc["fregment"] = "./fregment-sample.glsl"
+
+            $.get("./vertex-sample.glsl", function (data, status) {
+                delete needSrc.vertex
+                VSHADER_SOURCE = data
+
+                if (CountObjectProperty(needSrc) == 0) {
+                    initWebGL()
+                }
+            });
+            $.get("./fregment-sample.glsl", function (data, status) {
+                delete needSrc.fregment
+                FSHADER_SOURCE = data
+
+                if (CountObjectProperty(needSrc) == 0) {
+                    initWebGL()
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
